@@ -857,36 +857,22 @@
   </div>
 </div>
 
-<script type="module">
-  // 1. Importación necesaria para la App
-  import { Haptics } from '@capacitor/haptics';
-
-  // 2. ÚNICA función vibrate (borra la que está más abajo en el archivo)
+<script>
+  // Eliminamos type="module" y la importación de @capacitor/haptics para que funcione en la web
+  
   async function vibrate(pattern) {
-    try {
-      // Si estamos en la APP (Capacitor)
-      if (Haptics) {
-        const duration = Array.isArray(pattern) ? pattern[0] : pattern;
-        await Haptics.vibrate({ duration: duration });
-      } 
-      // Si estamos en el NAVEGADOR (PWA)
-      else if ('vibrate' in navigator) {
+    // Intentamos usar la vibración estándar del navegador (funciona en Chrome Android)
+    if ('vibrate' in navigator) {
+      try {
         navigator.vibrate(pattern);
+      } catch (e) {
+        console.log("Vibración no disponible");
       }
-    } catch (e) {
-      // Fallback por si falla lo anterior
-      if ('vibrate' in navigator) navigator.vibrate(pattern);
     }
   }
 
-  // 3. IMPORTANTE: Para que el botón "+" y otros funcionen con type="module"
-  // debemos asegurarnos de que los eventos se asignen por código (como ya haces abajo)
-  // o hacer las funciones globales. Como tu código ya usa addEventListener, 
-  // el problema suele ser una doble definición que detiene la ejecución.
-
   // ===== DATA LAYER =====
   const DB_KEY = 'speedrun_data_v1';
-  // ... resto del código ...
 let state = { runs: [] };
 
 function saveState() {
