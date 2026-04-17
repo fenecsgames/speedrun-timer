@@ -858,18 +858,23 @@
 </div>
 
 <script>
-  // Eliminamos type="module" y la importación de @capacitor/haptics para que funcione en la web
-  
-  async function vibrate(pattern) {
-    // Intentamos usar la vibración estándar del navegador (funciona en Chrome Android)
-    if ('vibrate' in navigator) {
-      try {
+async function vibrate(pattern) {
+  if ('vibrate' in navigator) {
+    try {
+      // Si le pasas un número (ej: 80), lo convertimos en un patrón más fuerte
+      // Un patrón de [200, 100, 200] vibra, para, y vuelve a vibrar fuerte.
+      if (typeof pattern === 'number') {
+        // Si el split es normal, vibramos 150ms (casi el doble de antes)
+        navigator.vibrate(150); 
+      } else {
+        // Si es el patrón de Récord/Final (array), lo hacemos más largo
         navigator.vibrate(pattern);
-      } catch (e) {
-        console.log("Vibración no disponible");
       }
+    } catch (e) {
+      console.log("Vibración no disponible");
     }
   }
+}
 
   // ===== DATA LAYER =====
   const DB_KEY = 'speedrun_data_v1';
@@ -1289,11 +1294,11 @@ function markSplit() {
 
   // Vibrate
   const pbCum = getCumulativePb(run, idx);
-  if (pbCum != null && splitTime < pbCum) {
-    vibrate([80, 80, 80]); // two vibrations
-  } else {
-    vibrate(80);
-  }
+if (pbCum != null && splitTime < pbCum) {
+  vibrate([150, 50, 150]); // Doble vibración fuerte si vas en verde
+} else {
+  vibrate(200); // Una vibración larga y seca si vas en rojo
+}
 
   // Flash
   const flash = document.getElementById('tap-flash');
@@ -1356,7 +1361,7 @@ function finishRun() {
   cancelAnimationFrame(runState.rafId);
   runState.running = false;
   const finalTime = runState.elapsed;
-  vibrate([100, 100, 100, 100, 200]);
+  vibrate([300, 100, 300, 100, 500]); // Tres vibraciones largas al terminar
 
   const run = activeRun;
   const isPb = run.pb == null || finalTime < run.pb;
