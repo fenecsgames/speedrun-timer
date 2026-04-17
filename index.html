@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>SpeedRun Timer</title>
+  
+  <link rel="icon" type="image/png" href="icono.png">
+  
+  <link rel="apple-touch-icon" href="icono.png">
+  
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0a0a0f">
+
+  <link rel="manifest" href="data:application/json;base64,ewogICJuYW1lIjogIlNwZWVkUnVuIFRpbWVyIiwKICAic2hvcnRfbmFtZSI6ICJTcGVlZFJ1biIsCiAgInN0YXJ0X3VybCI6ICIuIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjMGEwYTBmIiwKICAidGhlbWVfY29sb3IiOiAiIzBhMGEwZiIKfQ==">
+  
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+  <style>
+  :root {
+    --bg: #0a0a0f;
+    --bg2: #12121a;
+    --bg3: #1a1a26;
+    --accent: #00ff9d;
+    --accent2: #ff4060;
+    --accent3: #ffd700;
+    --text: #e0e0f0;
+    --muted: #5a5a7a;
+    --border: #2a2a3a;
+    --ahead: #00ff9d;
+    --behind: #ff4060;
+    --gold: #ffd700;
+    --font-mono: 'Share Tech Mono', monospace;
+    --font-ui: 'Rajdhani', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    min-height: 100vh;
+    overflow-x: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* ===== SCREENS ===== */
+  .screen { display: none; flex-direction: column; min-height: 100vh; }
+  .screen.active { display: flex; }
+
+  /* ===== HOME ===== */
+  #home-screen {
+    background: var(--bg);
+  }
+
+  .home-header {
+    padding: 48px 24px 24px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #0d0d18 0%, var(--bg) 100%);
+  }
+
+  .logo {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    opacity: 0.7;
+  }
+
+  .home-title {
+    font-family: var(--font-ui);
+    font-size: 42px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .home-title span {
+    color: var(--accent);
+  }
+
+  .runs-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+  }
+
+  .run-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .run-item::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--accent);
+  }
+
+  .run-item:active { background: var(--bg3); }
+
+  .run-item-info { flex: 1; }
+  .run-item-name {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--text);
+  }
+  .run-item-meta {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .run-item-pb {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--gold);
+    text-align: right;
+  }
+
+  .run-item-arrow {
+    color: var(--muted);
+    font-size: 20px;
+    margin-left: 16px;
+  }
+
+  .fab {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    font-size: 32px;
+    font-weight: 300;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 20px rgba(0,255,157,0.4);
+    transition: transform 0.1s, box-shadow 0.1s;
+    z-index: 100;
+  }
+  .fab:active { transform: scale(0.93); box-shadow: 0 0 10px rgba(0,255,157,0.2); }
+
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    padding: 40px;
+    text-align: center;
+  }
+  .empty-state-icon { font-size: 64px; margin-bottom: 16px; opacity: 0.3; }
+  .empty-state-text { font-size: 16px; line-height: 1.6; }
+
+  /* ===== EDIT SCREEN ===== */
+  #edit-screen {
+    background: var(--bg);
+  }
+
+  .screen-header {
+    display: flex;
+    align-items: center;
+    padding: 44px 16px 16px;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+    background: var(--bg2);
+  }
+
+  .btn-back {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 28px;
+    cursor: pointer;
+    padding: 4px 8px;
+    line-height: 1;
+  }
+
+  .screen-title {
+    font-size: 22px;
+    font-weight: 700;
+    flex: 1;
+    letter-spacing: 0.5px;
+  }
+
+  .btn-save {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    font-family: var(--font-ui);
+    font-size: 14px;
+    font-weight: 700;
+    padding: 8px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .btn-delete-run {
+    background: none;
+    border: 1px solid var(--accent2);
+    color: var(--accent2);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+  }
+
+  .edit-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 16px;
+  }
+
+  .field-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    font-family: var(--font-mono);
+  }
+
+  .field-input {
+    width: 100%;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 17px;
+    font-weight: 500;
+    outline: none;
+    margin-bottom: 24px;
+    transition: border-color 0.15s;
+  }
+  .field-input:focus { border-color: var(--accent); }
+
+  .splits-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .splits-title {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--accent);
+    text-transform: uppercase;
+    font-family: var(--font-mono);
+  }
+
+  .btn-add-split {
+    background: none;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  .split-row {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+
+  .split-row-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .split-name-input {
+    flex: 1;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 8px 10px;
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 15px;
+    font-weight: 500;
+    outline: none;
+  }
+  .split-name-input:focus { border-color: var(--accent); }
+
+  .btn-remove-split {
+    background: none;
+    border: none;
+    color: var(--accent2);
+    font-size: 22px;
+    cursor: pointer;
+    padding: 2px 6px;
+    line-height: 1;
+  }
+
+  .split-times {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .split-time-field label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-family: var(--font-mono);
+    margin-bottom: 5px;
+  }
+
+  .split-time-input {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 7px 10px;
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    outline: none;
+    text-align: center;
+  }
+  .split-time-input:focus { border-color: var(--accent); }
+  .split-time-input::placeholder { color: var(--muted); }
+
+  .start-run-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    width: calc(100% - 32px);
+    margin: 16px;
+    padding: 16px;
+    border-radius: 10px;
+    font-family: var(--font-ui);
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 0 0 20px rgba(0,255,157,0.25);
+    transition: transform 0.1s;
+  }
+  .start-run-btn:active { transform: scale(0.97); }
+
+  /* ===== RUN SCREEN ===== */
+  #run-screen {
+    background: var(--bg);
+    position: relative;
+  }
+
+  #run-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+  }
+
+  .run-start-box {
+    width: 88vw;
+    max-width: 380px;
+    aspect-ratio: 1;
+    background: var(--bg2);
+    border: 2px solid var(--border);
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+  }
+
+  .run-start-title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--text);
+    text-align: center;
+    padding: 0 20px;
+  }
+
+  .play-btn {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 30px rgba(0,255,157,0.5);
+    transition: transform 0.1s;
+  }
+  .play-btn:active { transform: scale(0.92); }
+  .play-btn svg { width: 36px; height: 36px; fill: var(--bg); margin-left: 5px; }
+
+  .run-header {
+    padding: 44px 16px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+  }
+
+  .run-game-name {
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-family: var(--font-mono);
+    margin-bottom: 6px;
+  }
+
+  .run-timer {
+    font-family: var(--font-mono);
+    font-size: 52px;
+    letter-spacing: 2px;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .run-timer.ahead { color: var(--ahead); }
+  .run-timer.behind { color: var(--behind); }
+
+  .run-pb-label {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .splits-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 12px;
+  }
+
+  .split-entry {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    border-radius: 7px;
+    margin-bottom: 4px;
+    border-left: 3px solid transparent;
+    transition: background 0.2s;
+    position: relative;
+  }
+
+  .split-entry.current {
+    background: rgba(0,255,157,0.07);
+    border-left-color: var(--accent);
+  }
+  .split-entry.done-ahead { border-left-color: var(--ahead); background: rgba(0,255,157,0.04); }
+  .split-entry.done-behind { border-left-color: var(--behind); background: rgba(255,64,96,0.04); }
+  .split-entry.done-gold { border-left-color: var(--gold); background: rgba(255,215,0,0.04); }
+
+  .split-entry-name {
+    flex: 1;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.3px;
+  }
+
+  .split-entry.current .split-entry-name { color: var(--accent); }
+
+  .split-entry-times {
+    text-align: right;
+    font-family: var(--font-mono);
+  }
+
+  .split-actual {
+    font-size: 16px;
+    color: var(--text);
+  }
+  .split-entry.done-ahead .split-actual { color: var(--ahead); }
+  .split-entry.done-behind .split-actual { color: var(--behind); }
+  .split-entry.done-gold .split-actual { color: var(--gold); }
+
+  .split-pb-ref {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .split-delta {
+    font-size: 13px;
+    margin-top: 2px;
+  }
+  .split-delta.pos { color: var(--ahead); }
+  .split-delta.neg { color: var(--behind); }
+
+  /* Countdown warning */
+  .split-countdown {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: bold;
+    padding: 4px 10px;
+    border-radius: 5px;
+    animation: pulse-warn 0.5s infinite alternate;
+  }
+  .split-countdown.warning { color: var(--accent3); background: rgba(255,215,0,0.1); }
+  .split-countdown.overdue { color: var(--behind); background: rgba(255,64,96,0.1); }
+
+  @keyframes pulse-warn {
+    from { opacity: 0.7; }
+    to { opacity: 1; }
+  }
+
+  .run-footer {
+    padding: 12px 16px 24px;
+    display: flex;
+    gap: 10px;
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+  }
+
+  .btn-stop {
+    flex: 1;
+    background: none;
+    border: 1px solid var(--accent2);
+    color: var(--accent2);
+    font-family: var(--font-ui);
+    font-size: 15px;
+    font-weight: 700;
+    padding: 13px;
+    border-radius: 8px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .btn-skip {
+    flex: 1;
+    background: none;
+    border: 1px solid var(--muted);
+    color: var(--muted);
+    font-family: var(--font-ui);
+    font-size: 15px;
+    font-weight: 700;
+    padding: 13px;
+    border-radius: 8px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* Tap zones */
+  .tap-zone {
+    position: fixed;
+    left: 0; right: 0;
+    z-index: 150;
+    cursor: pointer;
+  }
+  #tap-main { top: 80px; bottom: 80px; }
+  
+  .tap-flash {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,255,157,0.08);
+    pointer-events: none;
+    z-index: 300;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .tap-flash.show { opacity: 1; }
+
+  /* ===== RESULTS SCREEN ===== */
+  #results-screen {
+    background: var(--bg);
+  }
+
+  .results-header {
+    padding: 48px 20px 24px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+  }
+
+  .results-badge {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding: 5px 14px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+  }
+  .results-badge.pb { background: rgba(255,215,0,0.15); color: var(--gold); border: 1px solid var(--gold); }
+  .results-badge.normal { background: rgba(0,255,157,0.1); color: var(--accent); border: 1px solid var(--accent); }
+
+  .results-time {
+    font-family: var(--font-mono);
+    font-size: 56px;
+    letter-spacing: 2px;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .results-delta {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    margin-top: 8px;
+  }
+
+  .results-splits {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+  }
+
+  .result-split-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 14px;
+    background: var(--bg2);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border-left: 3px solid var(--border);
+  }
+  .result-split-row.ahead { border-left-color: var(--ahead); }
+  .result-split-row.behind { border-left-color: var(--behind); }
+  .result-split-row.gold { border-left-color: var(--gold); }
+  .result-split-row.skipped { opacity: 0.4; }
+
+  .result-split-name { flex: 1; font-size: 16px; font-weight: 600; }
+  .result-split-right { text-align: right; font-family: var(--font-mono); }
+  .result-split-time { font-size: 16px; }
+  .result-split-ref { font-size: 11px; color: var(--muted); }
+  .result-split-delta { font-size: 12px; margin-top: 2px; }
+  .result-split-delta.pos { color: var(--ahead); }
+  .result-split-delta.neg { color: var(--behind); }
+  .result-split-delta.gold-text { color: var(--gold); }
+
+  .results-actions {
+    padding: 12px 16px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    font-family: var(--font-ui);
+    font-size: 16px;
+    font-weight: 700;
+    padding: 15px;
+    border-radius: 9px;
+    cursor: pointer;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    width: 100%;
+  }
+
+  .btn-secondary {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: var(--font-ui);
+    font-size: 16px;
+    font-weight: 600;
+    padding: 15px;
+    border-radius: 9px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    width: 100%;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 500;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.active { display: flex; }
+
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px 16px 0 0;
+    padding: 24px;
+    width: 100%;
+    max-width: 480px;
+  }
+  .modal-title { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
+  .modal-text { color: var(--muted); font-size: 15px; line-height: 1.6; margin-bottom: 24px; }
+  .modal-actions { display: flex; gap: 10px; }
+  .modal-btn { flex: 1; padding: 13px; border-radius: 8px; font-family: var(--font-ui); font-size: 15px; font-weight: 700; cursor: pointer; letter-spacing: 1px; border: none; }
+  .modal-btn.confirm { background: var(--accent2); color: #fff; }
+  .modal-btn.cancel { background: var(--bg3); color: var(--text); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  @media (max-height: 600px) {
+    .run-timer { font-size: 38px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HOME SCREEN -->
+<div id="home-screen" class="screen active">
+  <div class="home-header">
+    <div class="logo">▶ SpeedRun Timer</div>
+    <div class="home-title">SPEED<span>RUN</span></div>
+  </div>
+  <div class="runs-list" id="runs-list">
+    <div class="empty-state" id="empty-state">
+      <div class="empty-state-icon">🏃</div>
+      <div class="empty-state-text">Aún no tienes ningún speedrun.<br>Pulsa <strong>+</strong> para añadir uno.</div>
+    </div>
+  </div>
+  <button class="fab" id="fab-add">+</button>
+</div>
+
+<!-- EDIT SCREEN -->
+<div id="edit-screen" class="screen">
+  <div class="screen-header">
+    <button class="btn-back" id="back-to-home">‹</button>
+    <div class="screen-title" id="edit-screen-title">Nuevo Speedrun</div>
+    <button class="btn-delete-run" id="btn-delete-run" style="display:none">Borrar</button>
+    <button class="btn-save" id="btn-save-run">GUARDAR</button>
+  </div>
+  <div class="edit-body">
+    <div class="field-label">Nombre del juego / categoría</div>
+    <input class="field-input" id="run-name-input" type="text" placeholder="ej: Super Mario 64 — 70 Stars">
+
+    <div class="splits-header">
+      <div class="splits-title">Splits</div>
+      <button class="btn-add-split" id="btn-add-split">+ Añadir split</button>
+    </div>
+    <div id="splits-edit-list"></div>
+  </div>
+  <button class="start-run-btn" id="btn-start-run">
+    ▶ &nbsp; INICIAR RUN
+  </button>
+</div>
+
+<!-- RUN SCREEN -->
+<div id="run-screen" class="screen">
+  <!-- Overlay inicial -->
+  <div id="run-overlay">
+    <div class="run-start-box">
+      <div class="run-start-title" id="run-overlay-title">Cargando…</div>
+      <button class="play-btn" id="play-btn">
+        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Timer UI -->
+  <div class="run-header">
+    <div class="run-game-name" id="run-game-name-label"></div>
+    <div class="run-timer" id="run-timer">0:00.00</div>
+    <div class="run-pb-label" id="run-pb-label"></div>
+  </div>
+
+  <div class="splits-container" id="run-splits-container"></div>
+
+  <div class="run-footer">
+    <button class="btn-skip" id="btn-skip-split">SALTAR</button>
+    <button class="btn-stop" id="btn-stop-run">ABANDONAR</button>
+  </div>
+
+  <!-- Tap zone invisible -->
+  <div class="tap-zone" id="tap-main"></div>
+  <div class="tap-flash" id="tap-flash"></div>
+</div>
+
+<!-- RESULTS SCREEN -->
+<div id="results-screen" class="screen">
+  <div class="results-header">
+    <div class="results-badge" id="results-badge">RUN COMPLETADA</div>
+    <div class="results-time" id="results-final-time">0:00.00</div>
+    <div class="results-delta" id="results-delta"></div>
+  </div>
+  <div class="results-splits" id="results-splits-list"></div>
+  <div class="results-actions">
+    <button class="btn-primary" id="btn-retry">▶ INTENTAR DE NUEVO</button>
+    <button class="btn-secondary" id="btn-results-home">← VOLVER AL INICIO</button>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">¿Confirmar?</div>
+    <div class="modal-text" id="modal-text"></div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" id="modal-cancel">Cancelar</button>
+      <button class="modal-btn confirm" id="modal-confirm">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+// 1. Esto va arriba del todo
+  import { Haptics } from '@capacitor/haptics';
+
+  // 2. Aquí pones la función
+  async function vibrate(pattern) {
+    try {
+      // Extraemos la duración si es un array o usamos el número directamente
+      const duration = Array.isArray(pattern) ? pattern[0] : pattern;
+      await Haptics.vibrate({ duration: duration });
+    } catch (e) {
+      console.log("Error de haptics, quizás estás en el PC:", e);
+    }
+  }
+// ===== DATA LAYER =====
+const DB_KEY = 'speedrun_data_v1';
+let state = { runs: [] };
+
+function saveState() {
+  localStorage.setItem(DB_KEY, JSON.stringify(state));
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(DB_KEY);
+    if (raw) state = JSON.parse(raw);
+  } catch(e) { state = { runs: [] }; }
+}
+
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+// ===== FORMAT TIME =====
+function formatTime(ms, compact = false) {
+  if (ms == null || ms < 0) return compact ? '--:--.--' : '--:--.-';
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  const cs = Math.floor((ms % 1000) / 10);
+  if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}.${String(cs).padStart(2,'0')}`;
+  return `${m}:${String(s).padStart(2,'0')}.${String(cs).padStart(2,'0')}`;
+}
+
+function parseTimeInput(str) {
+  if (!str || !str.trim()) return null;
+  // Accepts: mm:ss.cc or m:ss.cc or ss.cc or h:mm:ss.cc
+  const parts = str.trim().split(':');
+  let h = 0, m = 0, s = 0, cs = 0;
+  if (parts.length === 3) {
+    h = parseInt(parts[0]) || 0;
+    m = parseInt(parts[1]) || 0;
+    const sp = parts[2].split('.');
+    s = parseInt(sp[0]) || 0;
+    cs = parseInt((sp[1] || '0').padEnd(2,'0').slice(0,2)) || 0;
+  } else if (parts.length === 2) {
+    m = parseInt(parts[0]) || 0;
+    const sp = parts[1].split('.');
+    s = parseInt(sp[0]) || 0;
+    cs = parseInt((sp[1] || '0').padEnd(2,'0').slice(0,2)) || 0;
+  } else {
+    const sp = parts[0].split('.');
+    s = parseInt(sp[0]) || 0;
+    cs = parseInt((sp[1] || '0').padEnd(2,'0').slice(0,2)) || 0;
+  }
+  return ((h * 3600 + m * 60 + s) * 1000) + cs * 10;
+}
+
+// ===== SCREEN NAVIGATION =====
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ===== WAKE LOCK =====
+let wakeLock = null;
+async function requestWakeLock() {
+  try {
+    if ('wakeLock' in navigator) {
+      wakeLock = await navigator.wakeLock.request('screen');
+    }
+  } catch(e) {}
+}
+function releaseWakeLock() {
+  if (wakeLock) { wakeLock.release(); wakeLock = null; }
+}
+
+// ===== VIBRATION =====
+// Reemplaza tu función vibrate actual por esta
+function vibrate(pattern) {
+  // En Chrome móvil (PWA), esto funciona de forma nativa si el usuario ha interactuado con la pantalla
+  if ('vibrate' in navigator) {
+    try {
+      navigator.vibrate(pattern);
+    } catch (e) {
+      console.log("Vibración bloqueada por el sistema");
+    }
+  }
+}
+
+// ===== HOME SCREEN =====
+function renderHome() {
+  const list = document.getElementById('runs-list');
+  const empty = document.getElementById('empty-state');
+  list.querySelectorAll('.run-item').forEach(el => el.remove());
+
+  if (state.runs.length === 0) {
+    empty.style.display = 'flex';
+    return;
+  }
+  empty.style.display = 'none';
+
+  state.runs.forEach(run => {
+    const pbMs = run.pb;
+    const pbStr = pbMs != null ? formatTime(pbMs) : 'Sin record';
+    const splitsCount = run.splits.length;
+
+    const el = document.createElement('div');
+    el.className = 'run-item';
+    el.innerHTML = `
+      <div class="run-item-info">
+        <div class="run-item-name">${escHtml(run.name)}</div>
+        <div class="run-item-meta">${splitsCount} split${splitsCount !== 1 ? 's' : ''}</div>
+      </div>
+      <div>
+        <div class="run-item-pb">${pbStr}</div>
+      </div>
+      <div class="run-item-arrow">›</div>
+    `;
+    el.addEventListener('click', () => openEditScreen(run.id));
+    list.insertBefore(el, empty);
+  });
+}
+
+document.getElementById('fab-add').addEventListener('click', () => openEditScreen(null));
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ===== EDIT SCREEN =====
+let editingRunId = null;
+
+function openEditScreen(runId) {
+  editingRunId = runId;
+  const isNew = runId == null;
+
+  document.getElementById('edit-screen-title').textContent = isNew ? 'Nuevo Speedrun' : 'Editar Speedrun';
+  document.getElementById('btn-delete-run').style.display = isNew ? 'none' : 'block';
+
+  let run;
+  if (isNew) {
+    run = { id: null, name: '', splits: [], pb: null };
+    document.getElementById('run-name-input').value = '';
+  } else {
+    run = state.runs.find(r => r.id === runId);
+    document.getElementById('run-name-input').value = run.name;
+  }
+
+  renderSplitsEdit(run.splits);
+  showScreen('edit-screen');
+}
+
+function renderSplitsEdit(splits) {
+  const list = document.getElementById('splits-edit-list');
+  list.innerHTML = '';
+  splits.forEach((split, i) => {
+    const row = document.createElement('div');
+    row.className = 'split-row';
+    row.dataset.idx = i;
+
+    const bestMs = split.best != null ? formatTime(split.best) : '';
+    const pbSplitMs = split.pbSplit != null ? formatTime(split.pbSplit) : '';
+
+    row.innerHTML = `
+      <div class="split-row-top">
+        <input class="split-name-input" type="text" placeholder="Nombre del split" value="${escHtml(split.name)}">
+        <button class="btn-remove-split" data-idx="${i}">✕</button>
+      </div>
+      <div class="split-times">
+        <div class="split-time-field">
+          <label>Mejor split (gold)</label>
+          <input class="split-time-input" type="text" placeholder="0:00.00" value="${bestMs}" data-field="best" data-idx="${i}">
+        </div>
+        <div class="split-time-field">
+          <label>Split en run récord</label>
+          <input class="split-time-input" type="text" placeholder="0:00.00" value="${pbSplitMs}" data-field="pbSplit" data-idx="${i}">
+        </div>
+      </div>
+    `;
+    list.appendChild(row);
+  });
+
+  list.querySelectorAll('.btn-remove-split').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const idx = parseInt(e.currentTarget.dataset.idx);
+      const splits = getCurrentEditSplits();
+      splits.splice(idx, 1);
+      renderSplitsEdit(splits);
+    });
+  });
+}
+
+function getCurrentEditSplits() {
+  const rows = document.querySelectorAll('#splits-edit-list .split-row');
+  const splits = [];
+  rows.forEach(row => {
+    const name = row.querySelector('.split-name-input').value;
+    const bestVal = row.querySelector('[data-field="best"]').value;
+    const pbSplitVal = row.querySelector('[data-field="pbSplit"]').value;
+    splits.push({
+      name,
+      best: parseTimeInput(bestVal),
+      pbSplit: parseTimeInput(pbSplitVal),
+    });
+  });
+  return splits;
+}
+
+document.getElementById('btn-add-split').addEventListener('click', () => {
+  const splits = getCurrentEditSplits();
+  splits.push({ name: '', best: null, pbSplit: null });
+  renderSplitsEdit(splits);
+  // scroll to bottom
+  setTimeout(() => {
+    const list = document.getElementById('splits-edit-list');
+    list.lastElementChild?.scrollIntoView({ behavior: 'smooth' });
+  }, 50);
+});
+
+document.getElementById('back-to-home').addEventListener('click', () => {
+  showScreen('home-screen');
+  renderHome();
+});
+
+document.getElementById('btn-save-run').addEventListener('click', () => {
+  const name = document.getElementById('run-name-input').value.trim();
+  if (!name) { alert('Escribe un nombre para el speedrun.'); return; }
+  const splits = getCurrentEditSplits();
+
+  if (editingRunId == null) {
+    // New
+    const run = { id: genId(), name, splits, pb: null, history: [] };
+    // Compute pb from pbSplit times
+    run.pb = computePbFromSplits(splits);
+    state.runs.push(run);
+  } else {
+    const run = state.runs.find(r => r.id === editingRunId);
+    run.name = name;
+    run.splits = splits;
+    run.pb = computePbFromSplits(splits);
+  }
+  saveState();
+  showScreen('home-screen');
+  renderHome();
+});
+
+function computePbFromSplits(splits) {
+  const hasPbSplits = splits.some(s => s.pbSplit != null);
+  if (!hasPbSplits) return null;
+  let total = 0;
+  for (const s of splits) {
+    if (s.pbSplit == null) return null;
+    total += s.pbSplit;
+  }
+  return total;
+}
+
+document.getElementById('btn-delete-run').addEventListener('click', () => {
+  showModal('Borrar speedrun', '¿Seguro que quieres borrar este speedrun y todos sus datos?', () => {
+    state.runs = state.runs.filter(r => r.id !== editingRunId);
+    saveState();
+    showScreen('home-screen');
+    renderHome();
+  });
+});
+
+// ===== RUN LOGIC =====
+let activeRun = null;
+let runState = null;
+
+document.getElementById('btn-start-run').addEventListener('click', () => {
+  const runId = editingRunId;
+  // Save first
+  const name = document.getElementById('run-name-input').value.trim();
+  if (!name) { alert('Guarda el speedrun primero.'); return; }
+  // Save if new
+  if (editingRunId == null) {
+    document.getElementById('btn-save-run').click();
+    return;
+  }
+  // Save current state
+  document.getElementById('btn-save-run').click();
+
+  const run = state.runs.find(r => r.id === runId);
+  startRun(run);
+});
+
+function startRun(run) {
+  activeRun = run;
+  requestWakeLock();
+
+  document.getElementById('run-game-name-label').textContent = run.name;
+  document.getElementById('run-overlay-title').textContent = run.name;
+  document.getElementById('run-overlay').style.display = 'flex';
+  document.getElementById('run-pb-label').textContent = run.pb != null ? `PB: ${formatTime(run.pb)}` : 'Sin record';
+  document.getElementById('run-timer').textContent = '0:00.00';
+  document.getElementById('run-timer').className = 'run-timer';
+
+  runState = {
+    running: false,
+    startTime: null,
+    elapsed: 0,
+    splitIdx: 0,
+    splitTimes: [], // ms at which each split was hit (elapsed)
+    rafId: null,
+    tapState: { count: 0, lastTap: 0 },
+  };
+
+  renderRunSplits();
+  showScreen('run-screen');
+}
+
+document.getElementById('play-btn').addEventListener('click', () => {
+  document.getElementById('run-overlay').style.display = 'none';
+  beginTimer();
+});
+
+function beginTimer() {
+  runState.running = true;
+  runState.startTime = performance.now();
+  runState.elapsed = 0;
+  tick();
+}
+
+function tick() {
+  if (!runState || !runState.running) return;
+  runState.elapsed = performance.now() - runState.startTime;
+  updateTimerDisplay();
+  updateSplitCountdowns();
+  runState.rafId = requestAnimationFrame(tick);
+}
+
+function updateTimerDisplay() {
+  const el = document.getElementById('run-timer');
+  el.textContent = formatTime(runState.elapsed);
+
+  // Color: compare to pb cumulative at current split
+  const run = activeRun;
+  const idx = runState.splitIdx;
+  const pbCum = getCumulativePb(run, idx);
+  if (pbCum != null) {
+    if (runState.elapsed < pbCum) el.className = 'run-timer ahead';
+    else el.className = 'run-timer behind';
+  } else {
+    el.className = 'run-timer';
+  }
+}
+
+function getCumulativePb(run, splitIdx) {
+  if (!run.splits[splitIdx]) return null;
+  let total = 0;
+  for (let i = 0; i <= splitIdx; i++) {
+    if (run.splits[i].pbSplit == null) return null;
+    total += run.splits[i].pbSplit;
+  }
+  return total;
+}
+
+function getGoldCumulative(run, splitIdx) {
+  let total = 0;
+  for (let i = 0; i <= splitIdx; i++) {
+    const gold = run.splits[i].best;
+    const pb = run.splits[i].pbSplit;
+    const ref = gold != null ? Math.min(gold, pb ?? Infinity) : pb;
+    if (ref == null) return null;
+    total += ref;
+  }
+  return total;
+}
+
+function updateSplitCountdowns() {
+  const run = activeRun;
+  const idx = runState.splitIdx;
+  if (idx >= run.splits.length) return;
+
+  const pbCum = getCumulativePb(run, idx);
+  const countdownEl = document.getElementById(`split-countdown-${idx}`);
+  if (!countdownEl) return;
+
+  if (pbCum == null) { countdownEl.style.display = 'none'; return; }
+
+  const diff = pbCum - runState.elapsed; // positive = time remaining to pb
+  if (diff > 30000) { countdownEl.style.display = 'none'; return; }
+
+  countdownEl.style.display = 'block';
+  if (diff > 0) {
+    countdownEl.className = 'split-countdown warning';
+    const secs = Math.ceil(diff / 1000);
+    countdownEl.textContent = `-${secs}s`;
+  } else {
+    countdownEl.className = 'split-countdown overdue';
+    const over = Math.floor((-diff) / 1000);
+    countdownEl.textContent = `+${over}s`;
+  }
+}
+
+function renderRunSplits() {
+  const run = activeRun;
+  const container = document.getElementById('run-splits-container');
+  container.innerHTML = '';
+
+  run.splits.forEach((split, i) => {
+    const entry = document.createElement('div');
+    entry.className = 'split-entry' + (i === 0 ? ' current' : '');
+    entry.id = `split-entry-${i}`;
+
+    const pbCum = getCumulativePb(run, i);
+    const pbRef = pbCum != null ? formatTime(pbCum) : '--:--';
+
+    entry.innerHTML = `
+      <div class="split-entry-name">${escHtml(split.name) || `Split ${i+1}`}</div>
+      <div class="split-entry-times">
+        <div class="split-actual" id="split-actual-${i}">—</div>
+        <div class="split-pb-ref" id="split-ref-${i}">${pbRef}</div>
+        <div class="split-delta" id="split-delta-${i}"></div>
+      </div>
+      <div class="split-countdown" id="split-countdown-${i}" style="display:none"></div>
+    `;
+    container.appendChild(entry);
+  });
+}
+
+function markSplit() {
+  if (!runState || !runState.running) return;
+  const run = activeRun;
+  const idx = runState.splitIdx;
+  if (idx >= run.splits.length) return;
+
+  const splitTime = runState.elapsed;
+  runState.splitTimes.push(splitTime);
+
+  // Vibrate
+  const pbCum = getCumulativePb(run, idx);
+  if (pbCum != null && splitTime < pbCum) {
+    vibrate([80, 80, 80]); // two vibrations
+  } else {
+    vibrate(80);
+  }
+
+  // Flash
+  const flash = document.getElementById('tap-flash');
+  flash.classList.add('show');
+  setTimeout(() => flash.classList.remove('show'), 150);
+
+  // Update UI for this split
+  updateSplitEntry(idx, splitTime);
+
+  runState.splitIdx++;
+
+  if (runState.splitIdx >= run.splits.length) {
+    finishRun();
+    return;
+  }
+
+  // Update current highlight
+  document.querySelectorAll('.split-entry').forEach(el => el.classList.remove('current'));
+  const nextEntry = document.getElementById(`split-entry-${runState.splitIdx}`);
+  if (nextEntry) {
+    nextEntry.classList.add('current');
+    nextEntry.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
+function updateSplitEntry(idx, splitTime) {
+  const run = activeRun;
+  const entry = document.getElementById(`split-entry-${idx}`);
+  if (!entry) return;
+
+  // Individual split duration
+  const prevTime = idx > 0 ? runState.splitTimes[idx - 1] : 0;
+  const splitDuration = splitTime - prevTime;
+
+  const pbCum = getCumulativePb(run, idx);
+  const gold = run.splits[idx].best;
+
+  // Update actual time shown (cumulative)
+  document.getElementById(`split-actual-${idx}`).textContent = formatTime(splitTime);
+
+  // Delta
+  const deltaEl = document.getElementById(`split-delta-${idx}`);
+  if (pbCum != null) {
+    const delta = splitTime - pbCum;
+    deltaEl.textContent = (delta < 0 ? '-' : '+') + formatTime(Math.abs(delta));
+    deltaEl.className = 'split-delta ' + (delta < 0 ? 'pos' : 'neg');
+  }
+
+  // Classification
+  entry.classList.remove('current');
+  const isGold = gold != null && splitDuration < gold;
+  const isAhead = pbCum != null && splitTime < pbCum;
+
+  if (isGold) entry.classList.add('done-gold');
+  else if (isAhead) entry.classList.add('done-ahead');
+  else entry.classList.add('done-behind');
+}
+
+function finishRun() {
+  cancelAnimationFrame(runState.rafId);
+  runState.running = false;
+  const finalTime = runState.elapsed;
+  vibrate([100, 100, 100, 100, 200]);
+
+  const run = activeRun;
+  const isPb = run.pb == null || finalTime < run.pb;
+
+  // Save history entry
+  if (!run.history) run.history = [];
+  run.history.push({ time: finalTime, date: Date.now() });
+
+  if (isPb) {
+    run.pb = finalTime;
+    // Update pbSplit for each split
+    run.splits.forEach((split, i) => {
+      const cumTime = runState.splitTimes[i] ?? null;
+      const prevCum = i > 0 ? (runState.splitTimes[i-1] ?? null) : 0;
+      if (cumTime != null) {
+        const splitDur = cumTime - prevCum;
+        split.pbSplit = splitDur;
+        // Update gold if better
+        if (split.best == null || splitDur < split.best) {
+          split.best = splitDur;
+        }
+      }
+    });
+  } else {
+    // Still update golds if any split was faster
+    run.splits.forEach((split, i) => {
+      const cumTime = runState.splitTimes[i] ?? null;
+      const prevCum = i > 0 ? (runState.splitTimes[i-1] ?? null) : 0;
+      if (cumTime != null) {
+        const splitDur = cumTime - prevCum;
+        if (split.best == null || splitDur < split.best) {
+          split.best = splitDur;
+        }
+      }
+    });
+  }
+
+  saveState();
+  showResultsScreen(finalTime, isPb);
+  releaseWakeLock();
+}
+
+function showResultsScreen(finalTime, isPb) {
+  const run = activeRun;
+
+  const badge = document.getElementById('results-badge');
+  badge.textContent = isPb ? '🏆 NUEVO RÉCORD' : 'RUN COMPLETADA';
+  badge.className = 'results-badge ' + (isPb ? 'pb' : 'normal');
+
+  document.getElementById('results-final-time').textContent = formatTime(finalTime);
+
+  const deltaEl = document.getElementById('results-delta');
+  if (run.pb && !isPb) {
+    const old = run.history.length > 1 ? run.history[run.history.length - 2]?.time : null;
+    const ref = old ?? run.pb;
+    const delta = finalTime - ref;
+    deltaEl.textContent = (delta >= 0 ? '+' : '') + formatTime(Math.abs(delta)) + (delta < 0 ? ' más rápido' : ' más lento');
+    deltaEl.style.color = delta < 0 ? 'var(--ahead)' : 'var(--behind)';
+  } else {
+    deltaEl.textContent = '';
+  }
+
+  // Render splits
+  const list = document.getElementById('results-splits-list');
+  list.innerHTML = '';
+  run.splits.forEach((split, i) => {
+    const cumTime = runState.splitTimes[i] ?? null;
+    const prevCum = i > 0 ? (runState.splitTimes[i-1] ?? null) : 0;
+    const splitDur = cumTime != null ? cumTime - prevCum : null;
+    const pbCum = getCumulativePb(run, i);
+    const skipped = cumTime == null;
+    const isGold = !skipped && split.best != null && splitDur <= split.best;
+    const isAhead = !skipped && pbCum != null && cumTime < pbCum;
+
+    let cls = skipped ? 'skipped' : (isGold ? 'gold' : (isAhead ? 'ahead' : 'behind'));
+    let deltaTxt = '';
+    let deltaClass = '';
+    if (!skipped && pbCum != null) {
+      const d = cumTime - pbCum;
+      deltaTxt = (d < 0 ? '-' : '+') + formatTime(Math.abs(d));
+      deltaClass = d < 0 ? 'pos' : 'neg';
+    }
+    if (isGold) deltaClass = 'gold-text';
+
+    const row = document.createElement('div');
+    row.className = `result-split-row ${cls}`;
+    row.innerHTML = `
+      <div class="result-split-name">${escHtml(split.name) || `Split ${i+1}`}${isGold ? ' ★' : ''}</div>
+      <div class="result-split-right">
+        <div class="result-split-time">${skipped ? 'saltado' : formatTime(cumTime)}</div>
+        <div class="result-split-ref">${pbCum != null ? formatTime(pbCum) : ''}</div>
+        ${deltaTxt ? `<div class="result-split-delta ${deltaClass}">${deltaTxt}</div>` : ''}
+      </div>
+    `;
+    list.appendChild(row);
+  });
+
+  showScreen('results-screen');
+}
+
+// ===== TAP DETECTION =====
+const TAP_ZONE = document.getElementById('tap-main');
+const DOUBLE_TAP_MS = 2000;
+const MARGIN_PX = 80;
+
+TAP_ZONE.addEventListener('pointerdown', handleTap);
+// Also handle the full screen
+document.getElementById('run-screen').addEventListener('pointerdown', e => {
+  if (!runState || !runState.running) return;
+  const y = e.clientY;
+  const h = window.innerHeight;
+  if (y < MARGIN_PX || y > h - MARGIN_PX) return;
+  handleTap(e);
+});
+
+let tapTimeout = null;
+let tapCount = 0;
+
+function handleTap(e) {
+  if (!runState || !runState.running) return;
+  e.stopPropagation();
+  tapCount++;
+  if (tapCount === 1) {
+    tapTimeout = setTimeout(() => { tapCount = 0; }, DOUBLE_TAP_MS);
+  } else if (tapCount >= 2) {
+    clearTimeout(tapTimeout);
+    tapCount = 0;
+    markSplit();
+  }
+}
+
+// ===== STOP / SKIP =====
+document.getElementById('btn-stop-run').addEventListener('click', () => {
+  showModal('Abandonar run', '¿Quieres abandonar esta run? No se guardará el tiempo.', () => {
+    if (runState) {
+      cancelAnimationFrame(runState.rafId);
+      runState = null;
+    }
+    releaseWakeLock();
+    showScreen('home-screen');
+    renderHome();
+  });
+});
+
+document.getElementById('btn-skip-split').addEventListener('click', () => {
+  if (!runState || !runState.running) return;
+  const run = activeRun;
+  const idx = runState.splitIdx;
+  if (idx >= run.splits.length) return;
+
+  runState.splitTimes.push(null); // null = skipped
+  runState.splitIdx++;
+
+  const entry = document.getElementById(`split-entry-${idx}`);
+  if (entry) { entry.classList.remove('current'); entry.style.opacity = '0.3'; }
+
+  if (runState.splitIdx >= run.splits.length) { finishRun(); return; }
+
+  const nextEntry = document.getElementById(`split-entry-${runState.splitIdx}`);
+  if (nextEntry) {
+    nextEntry.classList.add('current');
+    nextEntry.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+});
+
+// ===== RESULTS ACTIONS =====
+document.getElementById('btn-retry').addEventListener('click', () => {
+  startRun(activeRun);
+});
+
+document.getElementById('btn-results-home').addEventListener('click', () => {
+  releaseWakeLock();
+  showScreen('home-screen');
+  renderHome();
+});
+
+// ===== MODAL =====
+let modalCallback = null;
+
+function showModal(title, text, cb) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-text').textContent = text;
+  modalCallback = cb;
+  document.getElementById('confirm-modal').classList.add('active');
+}
+
+document.getElementById('modal-cancel').addEventListener('click', () => {
+  document.getElementById('confirm-modal').classList.remove('active');
+  modalCallback = null;
+});
+
+document.getElementById('modal-confirm').addEventListener('click', () => {
+  document.getElementById('confirm-modal').classList.remove('active');
+  if (modalCallback) modalCallback();
+  modalCallback = null;
+});
+
+// ===== INIT =====
+loadState();
+renderHome();
+
+</script>
+</body>
+</html>
