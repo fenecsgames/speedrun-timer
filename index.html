@@ -858,21 +858,35 @@
 </div>
 
 <script type="module">
-// 1. Esto va arriba del todo
+  // 1. Importación necesaria para la App
   import { Haptics } from '@capacitor/haptics';
 
-  // 2. Aquí pones la función
+  // 2. ÚNICA función vibrate (borra la que está más abajo en el archivo)
   async function vibrate(pattern) {
     try {
-      // Extraemos la duración si es un array o usamos el número directamente
-      const duration = Array.isArray(pattern) ? pattern[0] : pattern;
-      await Haptics.vibrate({ duration: duration });
+      // Si estamos en la APP (Capacitor)
+      if (Haptics) {
+        const duration = Array.isArray(pattern) ? pattern[0] : pattern;
+        await Haptics.vibrate({ duration: duration });
+      } 
+      // Si estamos en el NAVEGADOR (PWA)
+      else if ('vibrate' in navigator) {
+        navigator.vibrate(pattern);
+      }
     } catch (e) {
-      console.log("Error de haptics, quizás estás en el PC:", e);
+      // Fallback por si falla lo anterior
+      if ('vibrate' in navigator) navigator.vibrate(pattern);
     }
   }
-// ===== DATA LAYER =====
-const DB_KEY = 'speedrun_data_v1';
+
+  // 3. IMPORTANTE: Para que el botón "+" y otros funcionen con type="module"
+  // debemos asegurarnos de que los eventos se asignen por código (como ya haces abajo)
+  // o hacer las funciones globales. Como tu código ya usa addEventListener, 
+  // el problema suele ser una doble definición que detiene la ejecución.
+
+  // ===== DATA LAYER =====
+  const DB_KEY = 'speedrun_data_v1';
+  // ... resto del código ...
 let state = { runs: [] };
 
 function saveState() {
@@ -943,19 +957,6 @@ async function requestWakeLock() {
 }
 function releaseWakeLock() {
   if (wakeLock) { wakeLock.release(); wakeLock = null; }
-}
-
-// ===== VIBRATION =====
-// Reemplaza tu función vibrate actual por esta
-function vibrate(pattern) {
-  // En Chrome móvil (PWA), esto funciona de forma nativa si el usuario ha interactuado con la pantalla
-  if ('vibrate' in navigator) {
-    try {
-      navigator.vibrate(pattern);
-    } catch (e) {
-      console.log("Vibración bloqueada por el sistema");
-    }
-  }
 }
 
 // ===== HOME SCREEN =====
