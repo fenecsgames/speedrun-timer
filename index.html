@@ -301,14 +301,34 @@
     border-radius: 8px;
     padding: 12px 14px;
     margin-bottom: 10px;
+    transition: opacity 0.15s, box-shadow 0.15s;
+    position: relative;
+  }
+  .split-row.dragging {
+    opacity: 0.4;
+  }
+  .split-row.drag-over {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(0,255,157,0.25);
   }
 
   .split-row-top {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     margin-bottom: 10px;
   }
+
+  .drag-handle {
+    color: var(--muted);
+    font-size: 18px;
+    cursor: grab;
+    padding: 2px 4px;
+    touch-action: none;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .drag-handle:active { cursor: grabbing; }
 
   .split-name-input {
     flex: 1;
@@ -364,6 +384,25 @@
   }
   .split-time-input:focus { border-color: var(--accent); }
   .split-time-input::placeholder { color: var(--muted); }
+
+  .split-row-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 8px;
+  }
+
+  .btn-reset-gold {
+    background: none;
+    border: 1px solid var(--muted);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+  }
+  .btn-reset-gold:active { border-color: var(--accent2); color: var(--accent2); }
 
   .start-run-btn {
     display: flex;
@@ -693,6 +732,27 @@
     border-top: 1px solid var(--border);
   }
 
+  .btn-save-run-result {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    font-family: var(--font-ui);
+    font-size: 17px;
+    font-weight: 700;
+    padding: 16px;
+    border-radius: 9px;
+    cursor: pointer;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    width: 100%;
+    box-shadow: 0 0 16px rgba(0,255,157,0.3);
+  }
+  .btn-save-run-result.pb-mode {
+    background: var(--gold);
+    box-shadow: 0 0 20px rgba(255,215,0,0.35);
+    color: #111;
+  }
+
   .btn-primary {
     background: var(--accent);
     color: var(--bg);
@@ -752,6 +812,57 @@
 
   /* Scrollbar */
   ::-webkit-scrollbar { width: 4px; }
+
+  /* ===== HISTORY ===== */
+  .btn-clear-history {
+    background: none;
+    border: 1px solid var(--accent2);
+    color: var(--accent2);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+
+  .history-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--bg2);
+    border-radius: 7px;
+    margin-bottom: 6px;
+    border-left: 3px solid var(--border);
+  }
+  .history-row.pb { border-left-color: var(--gold); }
+  .history-row.golds { border-left-color: var(--accent); }
+
+  .history-row-left { flex: 1; }
+  .history-row-time {
+    font-family: var(--font-mono);
+    font-size: 17px;
+    color: var(--text);
+  }
+  .history-row.pb .history-row-time { color: var(--gold); }
+  .history-row-date {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+  .history-row-badge {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-family: var(--font-mono);
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+  .history-row-badge.pb { background: rgba(255,215,0,0.15); color: var(--gold); }
+  .history-row-badge.golds { background: rgba(0,255,157,0.1); color: var(--accent); }
+  .history-row-badge.normal { color: var(--muted); }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
@@ -794,6 +905,14 @@
       <button class="btn-add-split" id="btn-add-split">+ Añadir split</button>
     </div>
     <div id="splits-edit-list"></div>
+
+    <div id="history-section" style="display:none">
+      <div class="splits-header" style="margin-top:24px">
+        <div class="splits-title">Historial de runs</div>
+        <button class="btn-clear-history" id="btn-clear-history">Borrar todo</button>
+      </div>
+      <div id="history-list"></div>
+    </div>
   </div>
   <button class="start-run-btn" id="btn-start-run">
     ▶ &nbsp; INICIAR RUN
@@ -822,7 +941,7 @@
   <div class="splits-container" id="run-splits-container"></div>
 
   <div class="run-footer">
-    <button class="btn-skip" id="btn-skip-split">SALTAR</button>
+    <button class="btn-skip" id="btn-skip-split">DESHACER</button>
     <button class="btn-stop" id="btn-stop-run">ABANDONAR</button>
   </div>
 
@@ -840,8 +959,9 @@
   </div>
   <div class="results-splits" id="results-splits-list"></div>
   <div class="results-actions">
+    <button class="btn-save-run-result" id="btn-save-result">💾 GUARDAR RUN</button>
     <button class="btn-primary" id="btn-retry">▶ INTENTAR DE NUEVO</button>
-    <button class="btn-secondary" id="btn-results-home">← VOLVER AL INICIO</button>
+    <button class="btn-secondary" id="btn-results-home">← VOLVER SIN GUARDAR</button>
   </div>
 </div>
 
@@ -858,6 +978,51 @@
 </div>
 
 <script>
+// ===== SERVICE WORKER (offline) =====
+if ('serviceWorker' in navigator) {
+  const swCode = `
+    const CACHE = 'speedrun-v1';
+    const FONTS = [
+      'https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;500;700&display=swap'
+    ];
+    self.addEventListener('install', e => {
+      e.waitUntil(
+        caches.open(CACHE).then(c => c.addAll(FONTS).catch(()=>{}))
+      );
+      self.skipWaiting();
+    });
+    self.addEventListener('activate', e => {
+      e.waitUntil(clients.claim());
+    });
+    self.addEventListener('fetch', e => {
+      // For navigation (the HTML itself) — cache-first with network fallback
+      if (e.request.mode === 'navigate') {
+        e.respondWith(
+          caches.match(e.request).then(r => r || fetch(e.request).then(res => {
+            const clone = res.clone();
+            caches.open(CACHE).then(c => c.put(e.request, clone));
+            return res;
+          }))
+        );
+        return;
+      }
+      // For fonts/assets — cache first
+      e.respondWith(
+        caches.match(e.request).then(r => r || fetch(e.request).then(res => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE).then(c => c.put(e.request, clone));
+          }
+          return res;
+        }).catch(() => new Response('', {status: 408})))
+      );
+    });
+  `;
+  const blob = new Blob([swCode], {type: 'application/javascript'});
+  const swUrl = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl).catch(() => {});
+}
+
 async function vibrate(pattern) {
   if ('vibrate' in navigator) {
     try {
@@ -1010,22 +1175,75 @@ function openEditScreen(runId) {
   }
 
   renderSplitsEdit(run.splits);
+  renderHistory(run);
   showScreen('edit-screen');
 }
+
+function renderHistory(run) {
+  const section = document.getElementById('history-section');
+  const list = document.getElementById('history-list');
+  list.innerHTML = '';
+
+  const history = run ? (run.history || []) : [];
+  if (!run || run.id == null || history.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = 'block';
+
+  // Top 10 sorted by time ascending
+  const top10 = [...history].sort((a, b) => a.time - b.time).slice(0, 10);
+
+  top10.forEach((entry, i) => {
+    const isPb = i === 0; // fastest = #1
+    const date = new Date(entry.date);
+    const dateStr = date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' })
+      + ' ' + date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+    const pos = i + 1;
+    let posStyle = 'color:var(--muted)';
+    if (pos === 1) posStyle = 'color:var(--gold)';
+    else if (pos === 2) posStyle = 'color:#c0c0c0';
+    else if (pos === 3) posStyle = 'color:#cd7f32';
+
+    const row = document.createElement('div');
+    row.className = `history-row${isPb ? ' pb' : ''}`;
+    row.innerHTML = `
+      <div style="font-family:var(--font-mono);font-size:18px;font-weight:700;width:32px;${posStyle}">#${pos}</div>
+      <div class="history-row-left">
+        <div class="history-row-time">${formatTime(entry.time)}</div>
+        <div class="history-row-date">${dateStr}</div>
+      </div>
+      ${isPb ? '<span class="history-row-badge pb">🏆 récord</span>' : ''}
+    `;
+    list.appendChild(row);
+  });
+}
+
+document.getElementById('btn-clear-history').addEventListener('click', () => {
+  showModal('Borrar historial', '¿Seguro que quieres borrar todo el historial de runs? El récord y los golds no se tocarán.', () => {
+    const run = state.runs.find(r => r.id === editingRunId);
+    if (run) { run.history = []; saveState(); renderHistory(run); }
+  });
+});
 
 function renderSplitsEdit(splits) {
   const list = document.getElementById('splits-edit-list');
   list.innerHTML = '';
+
   splits.forEach((split, i) => {
     const row = document.createElement('div');
     row.className = 'split-row';
     row.dataset.idx = i;
+    row.draggable = true;
 
     const bestMs = split.best != null ? formatTime(split.best) : '';
     const pbSplitMs = split.pbSplit != null ? formatTime(split.pbSplit) : '';
+    const hasGold = split.best != null;
 
     row.innerHTML = `
       <div class="split-row-top">
+        <span class="drag-handle" title="Arrastrar para reordenar">⠿</span>
         <input class="split-name-input" type="text" placeholder="Nombre del split" value="${escHtml(split.name)}">
         <button class="btn-remove-split" data-idx="${i}">✕</button>
       </div>
@@ -1039,17 +1257,137 @@ function renderSplitsEdit(splits) {
           <input class="split-time-input" type="text" placeholder="0:00.00" value="${pbSplitMs}" data-field="pbSplit" data-idx="${i}">
         </div>
       </div>
+      <div class="split-row-footer">
+        <button class="btn-reset-gold" data-idx="${i}" ${!hasGold ? 'style="opacity:0.3;pointer-events:none"' : ''}>↺ resetear gold</button>
+      </div>
     `;
     list.appendChild(row);
   });
 
+  // ---- DELETE with confirmation if has times ----
   list.querySelectorAll('.btn-remove-split').forEach(btn => {
     btn.addEventListener('click', e => {
       const idx = parseInt(e.currentTarget.dataset.idx);
       const splits = getCurrentEditSplits();
-      splits.splice(idx, 1);
+      const s = splits[idx];
+      const hasTimes = s.best != null || s.pbSplit != null;
+      if (hasTimes) {
+        showModal(
+          'Eliminar split',
+          `"${s.name || `Split ${idx+1}`}" tiene tiempos registrados. ¿Seguro que quieres eliminarlo? El PB total se recalculará.`,
+          () => { splits.splice(idx, 1); renderSplitsEdit(splits); }
+        );
+      } else {
+        splits.splice(idx, 1);
+        renderSplitsEdit(splits);
+      }
+    });
+  });
+
+  // ---- RESET GOLD with confirmation ----
+  list.querySelectorAll('.btn-reset-gold').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const idx = parseInt(e.currentTarget.dataset.idx);
+      const splits = getCurrentEditSplits();
+      const s = splits[idx];
+      showModal(
+        'Resetear gold',
+        `¿Resetear el mejor split individual de "${s.name || `Split ${idx+1}`}"? Se borrará el tiempo gold pero el split de la run récord no cambia.`,
+        () => {
+          splits[idx].best = null;
+          renderSplitsEdit(splits);
+        }
+      );
+    });
+  });
+
+  // ---- DRAG & DROP (mouse + touch) ----
+  let dragSrcIdx = null;
+  let touchClone = null;
+  let touchStartY = 0;
+
+  list.querySelectorAll('.split-row').forEach((row, i) => {
+    // Mouse drag
+    row.addEventListener('dragstart', e => {
+      dragSrcIdx = i;
+      setTimeout(() => row.classList.add('dragging'), 0);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    row.addEventListener('dragend', () => {
+      row.classList.remove('dragging');
+      list.querySelectorAll('.split-row').forEach(r => r.classList.remove('drag-over'));
+    });
+    row.addEventListener('dragover', e => {
+      e.preventDefault();
+      list.querySelectorAll('.split-row').forEach(r => r.classList.remove('drag-over'));
+      row.classList.add('drag-over');
+    });
+    row.addEventListener('drop', e => {
+      e.preventDefault();
+      row.classList.remove('drag-over');
+      if (dragSrcIdx === null || dragSrcIdx === i) return;
+      const splits = getCurrentEditSplits();
+      const moved = splits.splice(dragSrcIdx, 1)[0];
+      splits.splice(i, 0, moved);
       renderSplitsEdit(splits);
     });
+
+    // Touch drag — only from the handle
+    const handle = row.querySelector('.drag-handle');
+    handle.addEventListener('touchstart', e => {
+      e.stopPropagation();
+      dragSrcIdx = i;
+      touchStartY = e.touches[0].clientY;
+
+      // Create floating clone
+      touchClone = row.cloneNode(true);
+      touchClone.style.cssText = `
+        position:fixed; left:${row.getBoundingClientRect().left}px;
+        top:${row.getBoundingClientRect().top}px;
+        width:${row.offsetWidth}px; opacity:0.85; z-index:999;
+        pointer-events:none; border:2px solid var(--accent);
+        border-radius:8px; background:var(--bg3);
+      `;
+      document.body.appendChild(touchClone);
+      row.classList.add('dragging');
+    }, { passive: true });
+
+    handle.addEventListener('touchmove', e => {
+      if (dragSrcIdx === null) return;
+      e.preventDefault();
+      const dy = e.touches[0].clientY - touchStartY;
+      if (touchClone) {
+        const origTop = list.querySelectorAll('.split-row')[dragSrcIdx]?.getBoundingClientRect().top ?? touchStartY;
+        touchClone.style.top = (origTop + dy) + 'px';
+      }
+      // Highlight target row
+      const touch = e.touches[0];
+      list.querySelectorAll('.split-row').forEach(r => r.classList.remove('drag-over'));
+      const target = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.split-row');
+      if (target && target !== list.querySelectorAll('.split-row')[dragSrcIdx]) {
+        target.classList.add('drag-over');
+      }
+    }, { passive: false });
+
+    handle.addEventListener('touchend', e => {
+      if (dragSrcIdx === null) return;
+      if (touchClone) { touchClone.remove(); touchClone = null; }
+      list.querySelectorAll('.split-row').forEach(r => r.classList.remove('dragging', 'drag-over'));
+
+      const touch = e.changedTouches[0];
+      const target = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.split-row');
+      if (target) {
+        const rows = [...list.querySelectorAll('.split-row')];
+        const targetIdx = rows.indexOf(target);
+        if (targetIdx !== -1 && targetIdx !== dragSrcIdx) {
+          const splits = getCurrentEditSplits();
+          const moved = splits.splice(dragSrcIdx, 1)[0];
+          splits.splice(targetIdx, 0, moved);
+          renderSplitsEdit(splits);
+        }
+      }
+      dragSrcIdx = null;
+    }, { passive: true });
   });
 }
 
@@ -1108,14 +1446,18 @@ document.getElementById('btn-save-run').addEventListener('click', () => {
 });
 
 function computePbFromSplits(splits) {
-  const hasPbSplits = splits.some(s => s.pbSplit != null);
-  if (!hasPbSplits) return null;
-  let total = 0;
+  // PB = cumulative time at the last split that has a pbSplit value.
+  // This means the total run time is anchored to the last split,
+  // and adding/removing intermediate splits doesn't change it.
+  let cumulative = 0;
+  let lastValid = null;
   for (const s of splits) {
-    if (s.pbSplit == null) return null;
-    total += s.pbSplit;
+    if (s.pbSplit != null) {
+      cumulative += s.pbSplit;
+      lastValid = cumulative;
+    }
   }
-  return total;
+  return lastValid; // null if no splits have times yet
 }
 
 document.getElementById('btn-delete-run').addEventListener('click', () => {
@@ -1361,32 +1703,41 @@ function finishRun() {
   cancelAnimationFrame(runState.rafId);
   runState.running = false;
   const finalTime = runState.elapsed;
-  vibrate([300, 100, 300, 100, 500]); // Tres vibraciones largas al terminar
+  vibrate([300, 100, 300, 100, 500]);
 
   const run = activeRun;
   const isPb = run.pb == null || finalTime < run.pb;
 
-  // Save history entry
-  if (!run.history) run.history = [];
-  run.history.push({ time: finalTime, date: Date.now() });
+  // Store result temporarily — NOT saved yet, user must press Guardar
+  runState.finalTime = finalTime;
+  runState.isPb = isPb;
+
+  showResultsScreen(finalTime, isPb);
+  releaseWakeLock();
+}
+
+function commitSaveRun() {
+  const run = activeRun;
+  const finalTime = runState.finalTime;
+  const isPb = runState.isPb;
+  const newGolds = [];
 
   if (isPb) {
     run.pb = finalTime;
-    // Update pbSplit for each split
     run.splits.forEach((split, i) => {
       const cumTime = runState.splitTimes[i] ?? null;
       const prevCum = i > 0 ? (runState.splitTimes[i-1] ?? null) : 0;
       if (cumTime != null) {
         const splitDur = cumTime - prevCum;
         split.pbSplit = splitDur;
-        // Update gold if better
         if (split.best == null || splitDur < split.best) {
           split.best = splitDur;
+          newGolds.push(i);
         }
       }
     });
   } else {
-    // Still update golds if any split was faster
+    // Always update golds even without PB
     run.splits.forEach((split, i) => {
       const cumTime = runState.splitTimes[i] ?? null;
       const prevCum = i > 0 ? (runState.splitTimes[i-1] ?? null) : 0;
@@ -1394,14 +1745,17 @@ function finishRun() {
         const splitDur = cumTime - prevCum;
         if (split.best == null || splitDur < split.best) {
           split.best = splitDur;
+          newGolds.push(i);
         }
       }
     });
   }
 
+  if (!run.history) run.history = [];
+  run.history.push({ time: finalTime, date: Date.now(), newGolds });
+  run.history.sort((a, b) => a.time - b.time);
+  if (run.history.length > 10) run.history = run.history.slice(0, 10);
   saveState();
-  showResultsScreen(finalTime, isPb);
-  releaseWakeLock();
 }
 
 function showResultsScreen(finalTime, isPb) {
@@ -1414,12 +1768,14 @@ function showResultsScreen(finalTime, isPb) {
   document.getElementById('results-final-time').textContent = formatTime(finalTime);
 
   const deltaEl = document.getElementById('results-delta');
-  if (run.pb && !isPb) {
-    const old = run.history.length > 1 ? run.history[run.history.length - 2]?.time : null;
-    const ref = old ?? run.pb;
-    const delta = finalTime - ref;
+  if (run.pb != null && !isPb) {
+    const delta = finalTime - run.pb;
     deltaEl.textContent = (delta >= 0 ? '+' : '') + formatTime(Math.abs(delta)) + (delta < 0 ? ' más rápido' : ' más lento');
     deltaEl.style.color = delta < 0 ? 'var(--ahead)' : 'var(--behind)';
+  } else if (isPb && run.pb != null) {
+    const delta = finalTime - run.pb;
+    deltaEl.textContent = formatTime(Math.abs(delta)) + ' más rápido';
+    deltaEl.style.color = 'var(--ahead)';
   } else {
     deltaEl.textContent = '';
   }
@@ -1460,6 +1816,49 @@ function showResultsScreen(finalTime, isPb) {
   });
 
   showScreen('results-screen');
+
+  // Compute preview golds
+  const previewGolds = [];
+  activeRun.splits.forEach((split, i) => {
+    const cumTime = runState.splitTimes[i] ?? null;
+    const prevCum = i > 0 ? (runState.splitTimes[i-1] ?? null) : 0;
+    if (cumTime != null) {
+      const dur = cumTime - prevCum;
+      if (split.best == null || dur < split.best) previewGolds.push(i);
+    }
+  });
+
+  // Check if run enters top 10
+  const history = activeRun.history || [];
+  const top10Full = history.length >= 10;
+  const worstTop10 = top10Full ? history.sort((a,b) => a.time - b.time)[9].time : null;
+  const entersTop10 = !top10Full || finalTime < worstTop10;
+
+  const worthSaving = entersTop10 || previewGolds.length > 0;
+
+  const saveBtn = document.getElementById('btn-save-result');
+  if (!worthSaving) {
+    saveBtn.style.display = 'none';
+    document.getElementById('btn-results-home').textContent = '← VOLVER AL INICIO';
+  } else {
+    saveBtn.style.display = '';
+    saveBtn.disabled = false;
+    saveBtn.style.opacity = '';
+    if (runState.isPb) {
+      saveBtn.textContent = '🏆 GUARDAR NUEVO RÉCORD';
+      saveBtn.className = 'btn-save-run-result pb-mode';
+    } else if (previewGolds.length > 0 && entersTop10) {
+      saveBtn.textContent = `★ GUARDAR (top 10 + ${previewGolds.length} gold${previewGolds.length > 1 ? 's' : ''})`;
+      saveBtn.className = 'btn-save-run-result';
+    } else if (previewGolds.length > 0) {
+      saveBtn.textContent = `★ GUARDAR (${previewGolds.length} gold${previewGolds.length > 1 ? 's' : ''} nuevo${previewGolds.length > 1 ? 's' : ''})`;
+      saveBtn.className = 'btn-save-run-result';
+    } else {
+      saveBtn.textContent = '💾 GUARDAR (entra en top 10)';
+      saveBtn.className = 'btn-save-run-result';
+    }
+    document.getElementById('btn-results-home').textContent = '← VOLVER SIN GUARDAR';
+  }
 }
 
 // ===== TAP DETECTION =====
@@ -1508,27 +1907,45 @@ document.getElementById('btn-stop-run').addEventListener('click', () => {
 
 document.getElementById('btn-skip-split').addEventListener('click', () => {
   if (!runState || !runState.running) return;
-  const run = activeRun;
-  const idx = runState.splitIdx;
-  if (idx >= run.splits.length) return;
+  if (runState.splitIdx === 0) return; // nothing to undo
 
-  runState.splitTimes.push(null); // null = skipped
-  runState.splitIdx++;
+  // Undo last split
+  const undoneIdx = runState.splitIdx - 1;
+  runState.splitTimes.pop();
+  runState.splitIdx = undoneIdx;
 
-  const entry = document.getElementById(`split-entry-${idx}`);
-  if (entry) { entry.classList.remove('current'); entry.style.opacity = '0.3'; }
-
-  if (runState.splitIdx >= run.splits.length) { finishRun(); return; }
-
-  const nextEntry = document.getElementById(`split-entry-${runState.splitIdx}`);
-  if (nextEntry) {
-    nextEntry.classList.add('current');
-    nextEntry.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  // Reset visual of undone split
+  const undoneEntry = document.getElementById(`split-entry-${undoneIdx}`);
+  if (undoneEntry) {
+    undoneEntry.classList.remove('done-ahead', 'done-behind', 'done-gold');
+    undoneEntry.style.opacity = '';
+    undoneEntry.classList.add('current');
+    document.getElementById(`split-actual-${undoneIdx}`).textContent = '—';
+    document.getElementById(`split-delta-${undoneIdx}`).textContent = '';
+    undoneEntry.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
+
+  // Remove current highlight from the next one (if any)
+  const prevCurrent = document.getElementById(`split-entry-${undoneIdx + 1}`);
+  if (prevCurrent) prevCurrent.classList.remove('current');
+
+  vibrate(60);
 });
 
 // ===== RESULTS ACTIONS =====
+document.getElementById('btn-save-result').addEventListener('click', () => {
+  commitSaveRun();
+  // Disable save button to prevent double-save
+  const btn = document.getElementById('btn-save-result');
+  btn.textContent = '✓ GUARDADO';
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  // Update home button text
+  document.getElementById('btn-results-home').textContent = '← VOLVER AL INICIO';
+});
+
 document.getElementById('btn-retry').addEventListener('click', () => {
+  document.getElementById('btn-save-result').style.display = '';
   startRun(activeRun);
 });
 
