@@ -814,6 +814,19 @@
   ::-webkit-scrollbar { width: 4px; }
 
   /* ===== HISTORY ===== */
+  .btn-delete-history-entry {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 16px;
+    padding: 4px 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+    line-height: 1;
+    margin-left: 6px;
+  }
+  .btn-delete-history-entry:active { color: var(--accent2); }
+
   .btn-clear-history {
     background: none;
     border: 1px solid var(--accent2);
@@ -1215,15 +1228,79 @@ function renderHistory(run) {
         <div class="history-row-date">${dateStr}</div>
       </div>
       ${isPb ? '<span class="history-row-badge pb">🏆 récord</span>' : ''}
+      <button class="btn-delete-history-entry" data-date="${entry.date}" title="Eliminar esta run">✕</button>
     `;
     list.appendChild(row);
+  });
+
+  // Delete individual history entry
+  list.querySelectorAll('.btn-delete-history-entry').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const entryDate = parseInt(e.currentTarget.dataset.date);
+      const run = state.runs.find(r => r.id === editingRunId);
+      if (!run) return;
+      const entry = run.history.find(h => h.date === entryDate);
+      if (!entry) return;
+
+      const isTop1 = run.history.sort((a,b) => a.time - b.time)[0]?.date === entryDate;
+      const msg = isTop1
+        ? `¿Eliminar el tiempo récord (${formatTime(entry.time)})? El #2 pasará a ser el nuevo récord y los golds se recalcularán.`
+        : `¿Eliminar esta run (${formatTime(entry.time)})? Los golds se recalcularán con las runs restantes.`;
+
+      showModal('Eliminar run del historial', msg, () => {
+        run.history = run.history.filter(h => h.date !== entryDate);
+        recalcGoldsAndPb(run);
+        saveState();
+        renderHistory(run);
+        renderHome();
+      });
+    });
+  });
+}
+
+// Recalculate golds and pbSplit for each split from remaining history entries
+function recalcGoldsAndPb(run) {
+  if (!run.history || run.history.length === 0) {
+    run.pb = null;
+    run.splits.forEach(s => { s.best = null; s.pbSplit = null; });
+    return;
+  }
+
+  run.history.sort((a, b) => a.time - b.time);
+  run.pb = run.history[0].time;
+
+  // Update pbSplit from the fastest run (#1)
+  const top1 = run.history[0];
+  if (top1.splitDurations) {
+    run.splits.forEach((split, i) => {
+      split.pbSplit = top1.splitDurations[i] ?? null;
+    });
+  }
+
+  // Recalculate golds: best individual split across ALL remaining history entries
+  run.splits.forEach((split, i) => {
+    split.best = null;
+    run.history.forEach(entry => {
+      if (!entry.splitDurations) return;
+      const dur = entry.splitDurations[i];
+      if (dur != null && (split.best == null || dur < split.best)) {
+        split.best = dur;
+      }
+    });
   });
 }
 
 document.getElementById('btn-clear-history').addEventListener('click', () => {
-  showModal('Borrar historial', '¿Seguro que quieres borrar todo el historial de runs? El récord y los golds no se tocarán.', () => {
+  showModal('Borrar historial', '¿Seguro que quieres borrar todo el historial? Se resetearán también el récord y los golds.', () => {
     const run = state.runs.find(r => r.id === editingRunId);
-    if (run) { run.history = []; saveState(); renderHistory(run); }
+    if (run) {
+      run.history = [];
+      recalcGoldsAndPb(run);
+      saveState();
+      renderHistory(run);
+      renderHome();
+    }
   });
 });
 
@@ -1752,7 +1829,15 @@ function commitSaveRun() {
   }
 
   if (!run.history) run.history = [];
-  run.history.push({ time: finalTime, date: Date.now(), newGolds });
+
+  // Store individual split durations so golds can be recalculated on deletion
+  const splitDurations = run.splits.map((_, i) => {
+    const cumTime = runState.splitTimes[i] ?? null;
+    const prevCum = i > 0 ? (runState.splitTimes[i-1] ?? null) : 0;
+    return (cumTime != null && prevCum != null) ? cumTime - prevCum : null;
+  });
+
+  run.history.push({ time: finalTime, date: Date.now(), newGolds, splitDurations });
   run.history.sort((a, b) => a.time - b.time);
   if (run.history.length > 10) run.history = run.history.slice(0, 10);
   saveState();
